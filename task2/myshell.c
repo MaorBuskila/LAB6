@@ -60,7 +60,7 @@ void pipeline(int debug, cmdLine *command);
 
 
 
-void pipeCommands(cmdLine* input_command);
+void pipeCommands(cmdLine* input_command, int debug);
 
 
 
@@ -387,8 +387,6 @@ void execute(cmdLine* pCmdLine, int debug){
             freeCmdLines(pCmdLine);
             exit(EXIT_SUCCESS);
         }
-/*    set follow-fork-mode child    */
-/*    set detach-on-fork off        */
         pid_t pid = fork();
         int val = 0;
 
@@ -433,7 +431,7 @@ void execute(cmdLine* pCmdLine, int debug){
             }
 
             if(pCmdLine->next){
-                pipeCommands(pCmdLine);
+                pipeCommands(pCmdLine,debug);
                 return;
             }
 
@@ -464,12 +462,11 @@ void execute(cmdLine* pCmdLine, int debug){
 }
 
 /*handling single piped command*/
-void pipeCommands(cmdLine* input_command){
+void pipeCommands(cmdLine* input_command,int debug){
     pid_t child1_pid , child2_pid;
     int fileDescriptors [2]; //file descriptor for 2 childs
     if (pipe(fileDescriptors)==-1){
-        int error_code = errno;
-        perror(strerror(error_code));
+        perror("pipe didn't succeed");
         exit(EXIT_FAILURE);
     }
     /*creating the first child process*/
@@ -484,11 +481,12 @@ void pipeCommands(cmdLine* input_command){
         close(STDOUT);
         dup2(fileDescriptors[1],STDOUT);
         close(fileDescriptors[1]);
+        printDebug("child1>going to execute cmd: ...", -1, debug);
+        if (!(execvp(input_command->arguments[0] ,input_command->arguments))){
+            perror("Cant exec");
+            _exit(EXIT_FAILURE);
+        }
 
-        execvp(input_command->arguments[0] ,input_command->arguments);
-        int error_code = errno;
-        perror(strerror(error_code));
-        _exit(EXIT_FAILURE);
     }
 
         /*creating the second child process*/
@@ -516,67 +514,6 @@ void pipeCommands(cmdLine* input_command){
             close(fileDescriptors[0]);
             waitpid (child1_pid , NULL , 0);
             waitpid (child2_pid , NULL , 0);
-        }
-    }
-}
-
-void pipeline(int debug, cmdLine *command) {
-
-    int status;
-    pid_t c_process1, c_process2;
-    int p[2];
-
-    if (pipe(p) == -1) {
-        perror("pipe didn't succeed");
-        exit(EXIT_FAILURE);
-    }
-    printDebug("parent_process>forking…)", -1, debug);
-    c_process1 = fork();
-    if (c_process1 == -1) {
-        perror("fork1 didn't succeed");
-        exit(EXIT_FAILURE);
-    }
-    printDebug("parent_process>created process with id: ", c_process1, debug);
-    if (!c_process1) { // child process
-        printDebug("child1>redirecting stdout to the write end of the pipe...", -1, debug);
-        close(STDOUT);
-        dup(p[1]);
-        close(p[1]);
-        printDebug("child1>going to execute cmd: ...", -1, debug);
-        execvp(command->arguments[0], command->arguments);
-
-        perror("Error");
-        exit(EXIT_FAILURE);
-
-    } else { //parent process
-        printDebug("parent_process>closing the write end of the pipe...", -1, debug);
-        close(p[1]);
-
-        printDebug("parent_process>forking…)", -1, debug);
-        c_process2 = fork();
-        if (c_process2 == -1) {
-            perror("fork2 didn't succeed");
-            exit(EXIT_FAILURE);
-        }
-        printDebug("parent_process>created process with id: ", getpid(), debug);
-        if (!c_process2) { // child process
-            printDebug("child2>redirecting stdin to the read end of the pipe...", -1, debug);
-            close(STDIN);
-            dup(p[0]);
-            close(p[0]);
-            printDebug("child2>going to execute cmd: ...", -1, debug);
-            execvp(command->arguments[0], command->arguments);
-
-            perror("Error");
-            exit(EXIT_FAILURE);
-        } else {
-
-            printDebug("parent_process>closing the read end of the pipe...", -1, debug);
-            close(p[0]);
-            printDebug("parent_process>waiting for child processes 1 to terminate...", -1, debug);
-            waitpid(c_process1, &status, 0);  // Parent process waits here for child to terminate.
-            printDebug("parent_process>waiting for child processes 2 to terminate...", -1, debug);
-            waitpid(c_process2, &status, 0);  // Parent process waits here for child to terminate.
         }
     }
 }

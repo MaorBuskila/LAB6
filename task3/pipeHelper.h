@@ -4,11 +4,9 @@
 
 #ifndef LAB6_PIPEHELPER_H
 #define LAB6_PIPEHELPER_H
-#include "../task2/LineParser.h"
 
-int ** createPipes(int nPipes);
-void releasePipes(int **pipes, int nPipes);
-int *leftPipe(int **pipes, cmdLine *pCmdLine);
-int *rightPipe(int **pipes, cmdLine *pCmdLine);
+#include "LineParser.h"
+
+
 #endif //LAB6_PIPEHELPER_H
 

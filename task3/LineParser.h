@@ -22,3 +22,8 @@ void freeCmdLines(cmdLine *pCmdLine);		/* Free parsed line */
 /* Replaces arguments[num] with newString */
 /* Returns 0 if num is out-of-range, otherwise - returns 1 */
 int replaceCmdArg(cmdLine *pCmdLine, int num, const char *newString);
+
+int ** createPipes(int nPipes);
+void releasePipes(int **pipes, int nPipes);
+int *leftPipe(int **pipes, cmdLine *pCmdLine);
+int *rightPipe(int **pipes, cmdLine *pCmdLine);
