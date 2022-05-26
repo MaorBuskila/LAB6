@@ -183,15 +183,14 @@ void execute(cmdLine *command, int debug, int counter) {
 
                     //check if there is left command
                     if (leftPipe(pipes, cur_command) != NULL) {
-                        dup2(pipes[cur_command->idx - 1][0],STDIN);/*closing write-end for the cur_command process */
-                        close(pipes[cur_command->idx - 1][0]);
+                        dup2(pipes[cur_command->idx - 1][0],0);/*replace the read end to our file */
+                        close(pipes[cur_command->idx - 1][0]); /*Close the file descriptor that was duplicated. */
                     }
 
                     //check if there is right command
                     if (rightPipe(pipes, cur_command) != NULL) {
-                        /*closing stdout for the cur_line process and executing dup(pipe_index[1]), now the process "spills itself to the write channel*/
-                        dup2(pipes[cur_command->idx][1], STDOUT);
-                        close(pipes[cur_command->idx][1]);
+                        dup2(pipes[cur_command->idx][1], 1); /*replace the write-end to our file */
+                        close(pipes[cur_command->idx][1]); /*Close the file descriptor that was duplicated. */
 
                     }
 
@@ -269,13 +268,8 @@ void execute(cmdLine *command, int debug, int counter) {
 
             wait_pid = 0;
             if (command->blocking != 0) {
-                wait_pid = waitpid(pid, &waitpid_status, 0);// equivalent to wait(&ProgramId)
+                waitpid(pid, &waitpid_status, 0);// equivalent to wait(&ProgramId)
 
-
-                if (wait_pid == pid) //check if the return status is the pid of child process
-                    fprintf(stderr, "Father wait for child process -%d ended\n\n", pid);
-                else
-                    fprintf(stderr, "Father wait for child process -%d failed\n\n", pid);
 
             }
 
